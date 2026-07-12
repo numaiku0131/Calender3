@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Task Calendar - 美しいタスク管理カレンダー</title>
+  <meta name="description" content="毎日のタスクをカレンダー上で直感的に管理。進捗率の可視化と美しいデザインで毎日の生産性を高めます。">
+  
+  <!-- Google Fonts: Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- PWA Manifest & Icons -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#6366f1">
+  <link rel="apple-touch-icon" href="icon-192.jpg">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Chart.js for Workout Progress Visualization -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="background-decor">
+    <div class="circle circle-1"></div>
+    <div class="circle circle-2"></div>
+    <div class="circle circle-3"></div>
+  </div>
+
+  <main class="app-container">
+    <header class="app-header">
+      <div class="header-main">
+        <div class="logo">
+          <i data-lucide="calendar-check" class="logo-icon"></i>
+          <h1>TaskCalendar</h1>
+        </div>
+        <p class="subtitle">毎日の進捗を可視化するタスク管理</p>
+      </div>
+      <button id="layout-toggle-btn" class="btn-text layout-toggle-btn">
+        <i data-lucide="sliders-horizontal"></i>
+        <span>表示: 自動</span>
+      </button>
+    </header>
+
+    <div class="app-content">
+      <!-- カレンダーエリア -->
+      <section class="calendar-section glass-panel">
+        <div class="calendar-header">
+          <h2 id="current-month-year">2026年 7月</h2>
+          <div class="calendar-nav">
+            <button id="prev-month-btn" class="btn-icon" aria-label="前月">
+              <i data-lucide="chevron-left"></i>
+            </button>
+            <button id="today-btn" class="btn-text">今日</button>
+            <button id="next-month-btn" class="btn-icon" aria-label="翌月">
+              <i data-lucide="chevron-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="calendar-weekdays">
+          <div>日</div>
+          <div>月</div>
+          <div>火</div>
+          <div>水</div>
+          <div>木</div>
+          <div>金</div>
+          <div>土</div>
+        </div>
+
+        <div id="calendar-days" class="calendar-days-grid">
+          <!-- JSで動的に日付セルを生成 -->
+        </div>
+      </section>
+
+      <!-- タスクエリア -->
+      <section class="task-section glass-panel">
+        <div class="task-tabs">
+          <button id="tab-today" class="task-tab active">
+            <i data-lucide="calendar"></i>
+            <span>今日のタスク</span>
+          </button>
+          <button id="tab-recurring" class="task-tab">
+            <i data-lucide="refresh-cw"></i>
+            <span>定期タスク設定</span>
+          </button>
+          <button id="tab-workout" class="task-tab">
+            <i data-lucide="dumbbell"></i>
+            <span>筋トレ管理</span>
+          </button>
+        </div>
+
+        <!-- 今日のタスクコンテンツ -->
+        <div id="today-tasks-container" class="tab-content">
+          <div class="task-header">
+            <div class="selected-date-info">
+              <span class="date-label">選択された日付</span>
+              <h3 id="selected-date-display">2026年7月5日 (日)</h3>
+            </div>
+            <div class="progress-container">
+              <span class="progress-label">進捗率</span>
+              <div class="progress-bar-wrapper">
+                <div id="task-progress-bar" class="progress-bar-fill" style="width: 0%"></div>
+              </div>
+              <span id="progress-percentage">0%</span>
+            </div>
+          </div>
+
+          <div class="task-input-container">
+            <form id="task-form" class="task-form">
+              <input type="text" id="task-input" placeholder="新しいタスクを入力..." required autocomplete="off">
+              <button type="submit" class="btn-primary" aria-label="タスクを追加">
+                <i data-lucide="plus"></i>
+                <span>追加</span>
+              </button>
+            </form>
+          </div>
+
+          <div class="task-list-wrapper">
+            <ul id="task-list" class="task-list">
+              <!-- JSで動的にタスク項目を生成 -->
+            </ul>
+            <div id="no-tasks-message" class="no-tasks">
+              <i data-lucide="clipboard-list" class="empty-icon"></i>
+              <p>この日のタスクはありません。<br>上の入力フォームから追加してください。</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 定期タスク設定コンテンツ -->
+        <div id="recurring-tasks-container" class="tab-content" style="display: none;">
+          <div class="task-header">
+            <div class="selected-date-info">
+              <span class="date-label">自動生成ルール</span>
+              <h3>定期タスクの管理</h3>
+            </div>
+            <p class="section-desc">ここで登録されたタスクは、ルールに合致するカレンダーの日付に自動で追加されます。</p>
+          </div>
+
+          <div class="recurring-form-container">
+            <form id="recurring-form" class="recurring-form">
+              <div class="form-group">
+                <label for="recurring-input" class="form-label">タスク名</label>
+                <input type="text" id="recurring-input" placeholder="例: 毎日の読書、筋トレ、ゴミ出し..." required autocomplete="off">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">繰り返しの種類</label>
+                <div class="recurring-type-selector">
+                  <label class="radio-label">
+                    <input type="radio" name="recurring-type" value="daily" checked>
+                    <span class="radio-button">毎日</span>
+                  </label>
+                  <label class="radio-label">
+                    <input type="radio" name="recurring-type" value="weekly">
+                    <span class="radio-button">毎週</span>
+                  </label>
+                  <label class="radio-label">
+                    <input type="radio" name="recurring-type" value="monthly">
+                    <span class="radio-button">毎月</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 曜日選択 (毎週が選択された場合のみ表示) -->
+              <div id="weekly-selector-container" class="form-group" style="display: none;">
+                <label class="form-label">曜日を選択 (複数選択可)</label>
+                <div class="weekday-checkboxes">
+                  <label class="checkbox-label">
+                    <input type="checkbox" name="weekly-day" value="1">
+                    <span class="checkbox-button">月</span>
+                  </label>
+                  <label class="checkbox-label">
+                    <input type="checkbox" name="weekly-day" value="2">
+                    <span class="checkbox-button">火</span>
+                  </label>
+                  <label class="checkbox-label">
+                    <input type="checkbox" name="weekly-day" value="3">
+                    <span class="checkbox-button">水</span>
+                  </label>
+                  <label class="checkbox-label">
+                    <input type="checkbox" name="weekly-day" value="4">
+                    <span class="checkbox-button">木</span>
+                  </label>
+                  <label class="checkbox-label">
+                    <input type="checkbox" name="weekly-day" value="5">
+                    <span class="checkbox-button">金</span>
+                  </label>
+                  <label class="checkbox-label">
+                    <input type="checkbox" name="weekly-day" value="6">
+                    <span class="checkbox-button">土</span>
+                  </label>
+                  <label class="checkbox-label">
+                    <input type="checkbox" name="weekly-day" value="0">
+                    <span class="checkbox-button">日</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 日にち選択 (毎月が選択された場合のみ表示) -->
+              <div id="monthly-selector-container" class="form-group" style="display: none;">
+                <label for="monthly-day-select" class="form-label">日付を選択</label>
+                <div class="select-wrapper">
+                  <select id="monthly-day-select" class="form-select">
+                    <!-- JSで 1〜31 を挿入 -->
+                  </select>
+                </div>
+              </div>
+
+              <button type="submit" class="btn-primary w-full">
+                <i data-lucide="plus"></i>
+                <span>定期タスクを登録</span>
+              </button>
+            </form>
+          </div>
+
+          <div class="recurring-list-wrapper">
+            <h4 class="sub-section-title">登録中の定期タスク</h4>
+            <ul id="recurring-list" class="recurring-list">
+              <!-- JSで動的に定期タスクルールを生成 -->
+            </ul>
+            <div id="no-recurring-message" class="no-tasks" style="display: none;">
+              <i data-lucide="refresh-cw" class="empty-icon"></i>
+              <p>登録されている定期タスクはありません。<br>上のフォームから登録してください。</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 筋トレ管理コンテンツ -->
+        <div id="workout-tasks-container" class="tab-content" style="display: none;">
+          <div class="task-header">
+            <div class="selected-date-info">
+              <span class="date-label">トレーニング計画</span>
+              <h3>筋トレの管理</h3>
+            </div>
+            <p class="section-desc">メニューと曜日、回数を登録します。完了すると累計実績グラフが自動更新されます。</p>
+          </div>
+
+          <div class="workout-grid">
+            <!-- 登録フォーム -->
+            <div class="workout-form-container">
+              <form id="workout-form" class="workout-form">
+                <div class="form-group">
+                  <label for="workout-name-input" class="form-label">メニュー名</label>
+                  <input type="text" id="workout-name-input" placeholder="例: スクワット, 腕立て伏せ, 腹筋..." required autocomplete="off">
+                </div>
+
+                <div class="form-group">
+                  <label for="workout-reps-input" class="form-label">回数 (1回あたり)</label>
+                  <input type="number" id="workout-reps-input" min="1" max="1000" placeholder="30" required autocomplete="off">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">実施する曜日 (複数選択可)</label>
+                  <div class="weekday-checkboxes">
+                    <label class="checkbox-label">
+                      <input type="checkbox" name="workout-day" value="1">
+                      <span class="checkbox-button">月</span>
+                    </label>
+                    <label class="checkbox-label">
+                      <input type="checkbox" name="workout-day" value="2">
+                      <span class="checkbox-button">火</span>
+                    </label>
+                    <label class="checkbox-label">
+                      <input type="checkbox" name="workout-day" value="3">
+                      <span class="checkbox-button">水</span>
+                    </label>
+                    <label class="checkbox-label">
+                      <input type="checkbox" name="workout-day" value="4">
+                      <span class="checkbox-button">木</span>
+                    </label>
+                    <label class="checkbox-label">
+                      <input type="checkbox" name="workout-day" value="5">
+                      <span class="checkbox-button">金</span>
+                    </label>
+                    <label class="checkbox-label">
+                      <input type="checkbox" name="workout-day" value="6">
+                      <span class="checkbox-button">土</span>
+                    </label>
+                    <label class="checkbox-label">
+                      <input type="checkbox" name="workout-day" value="0">
+                      <span class="checkbox-button">日</span>
+                    </label>
+                  </div>
+                </div>
+
+                <button type="submit" class="btn-primary w-full">
+                  <i data-lucide="plus"></i>
+                  <span>メニューを登録</span>
+                </button>
+              </form>
+            </div>
+            
+            <!-- グラフ表示エリア -->
+            <div class="workout-chart-container glass-subpanel">
+              <h4 class="sub-section-title no-margin">累計トレーニング実績 (回数)</h4>
+              <div class="chart-wrapper">
+                <canvas id="workout-chart"></canvas>
+              </div>
+              <div id="no-chart-message" class="no-chart-data" style="display: none;">
+                <i data-lucide="bar-chart-2" class="empty-icon small-icon"></i>
+                <p>筋トレを完了すると、ここに累計回数が可視化されます。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="workout-list-wrapper">
+            <h4 class="sub-section-title">登録中のトレーニングメニュー</h4>
+            <ul id="workout-list" class="workout-list">
+              <!-- JSで動的に筋トレリストを生成 -->
+            </ul>
+            <div id="no-workouts-message" class="no-tasks" style="display: none;">
+              <i data-lucide="dumbbell" class="empty-icon"></i>
+              <p>登録されているトレーニングメニューはありません。<br>上のフォームから登録してください。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Bottom Tab Bar (For Smartphone Layouts) -->
+  <nav id="bottom-tab-bar" class="bottom-tab-bar">
+    <button id="bottom-tab-calendar" class="bottom-tab-item active">
+      <i data-lucide="calendar-days"></i>
+      <span>カレンダー</span>
+    </button>
+    <button id="bottom-tab-today" class="bottom-tab-item">
+      <i data-lucide="check-square"></i>
+      <span>今日のタスク</span>
+    </button>
+    <button id="bottom-tab-recurring" class="bottom-tab-item">
+      <i data-lucide="refresh-cw"></i>
+      <span>定期ルール</span>
+    </button>
+    <button id="bottom-tab-workout" class="bottom-tab-item">
+      <i data-lucide="dumbbell"></i>
+      <span>筋トレ管理</span>
+    </button>
+  </nav>
+
+  <footer class="app-footer">
+    <p>&copy; 2026 TaskCalendar. Created with Antigravity.</p>
+  </footer>
+
+  <!-- App Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
